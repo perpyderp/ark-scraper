@@ -33,41 +33,44 @@ r = requests.get('https://ark.fandom.com/wiki/Eggs')
 doc = BeautifulSoup(r.content, 'html.parser')
 
 eggData = []
-data = []
+newEgg = {}
+eggs = []
 
 eggTable = doc.find(['table'], class_='wikitable')
-eggTableHeader = eggTable.find_all('th')
-eggTableBody = eggTable.tbody
-eggTableRows = eggTableBody.find_all('tr')
 
-print(eggTable)
-# print(eggTableRows)
+for index, row in enumerate(eggTable.find_all('tr')):
+    # print(str(index))
+    rowHeader = row.find('th')
+    if rowHeader and 'colspan' in rowHeader.attrs and rowHeader['colspan'] == '3' and index != 1:
+        newEgg['eggs'] = eggs
+        eggs = []
+        eggData.append(newEgg)
+        newEgg = {}
+        newEgg['eggType'] = rowHeader.get_text(strip=True)
+        # print('<th> found at index ' + str(index))
+        # print(rowHeader)
+    elif rowHeader and index == 1:
+        newEgg['eggType'] = rowHeader.get_text(strip=True)
 
-# for armorRow in armorTableRows:
+    rowData = row.find_all('td')
     
-#     armorData = armorRow.find_all('td')
+    for currentRow in rowData:
+        if 'rowspan' in currentRow.attrs:
+            ul = currentRow.find('ul')
+            if ul:
+                favoredByList = []
+                for li in ul.find_all('li'):
+                    favoredByList.append(li.text.strip())
+                newEgg['favoredBy'] = favoredByList
+            else:
+                kibble = currentRow.get_text(strip=True)
+                newEgg['kibble'] = kibble
+        else:
+            eggs.append(currentRow.get_text(strip=True))
+    
 
-#     if len(armorData) == 0:
-#         continue
-#     else:
-#         armorLink = "https://ark.fandom.com" + armorRow.find('a').get('href')
-#         armorData = [ele.text.strip() for ele in armorData]
+# print(eggData)
 
-#         newArmor = {
-#             "armorType": armorData[0],
-#             "unlockLevel": armorData[1], 
-#             "armorRating": armorData[2], 
-#             "coldProtection": armorData[3],
-#             "heatProtection": armorData[4],
-#             "weight": armorData[5],
-#             "durability": armorData[6],
-#             "foundIn": armorData[7],
-#             "ingredients": parse_ingredients(armorData[8]),
-#             "url": armorLink
-#         }
+collection.insert_many(eggData)
 
-#         data.append(newArmor)
-
-# collection.insert_many(data)
-
-# client.close()
+client.close()
